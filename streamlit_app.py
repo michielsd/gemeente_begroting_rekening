@@ -3,6 +3,7 @@ import csv
 import altair as alt
 import pandas as pd
 import streamlit as st
+import matplotlib
 
 # Globals
 JAAR_MINIMUM = 2017
