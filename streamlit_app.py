@@ -12,19 +12,19 @@ JAAR_MAXIMUM = 2023
 # Data import
 @st.cache_resource
 def get_data():
-    filepath = "begroting_rekening.csv"  # Replace with Pickle file
+    filepath = "begroting_rekening.pickle"  # may replace with csv
 
-    data = pd.read_csv(filepath,
-                       dtype={
-                           'Gemeenten': 'category',
-                           'Jaar': 'category',
-                           'Stand': 'category',
-                           'Taakveld': 'category',
-                           'Document': 'category',
-                           'Waarde': 'int32'
-                       })
+    #data = pd.read_csv(filepath,
+    #                   dtype={
+    #                       'Gemeenten': 'category',
+    #                       'Jaar': 'category',
+    #                       'Stand': 'category',
+    #                       'Taakveld': 'category',
+    #                       'Document': 'category',
+    #                       'Waarde': 'int32'
+    #                   })
 
-    #data = pd.read_pickle(filepath)
+    data = pd.read_pickle(filepath)
 
     return data
 
