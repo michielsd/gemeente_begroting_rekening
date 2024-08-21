@@ -320,7 +320,6 @@ with st.sidebar:
 
     # If vergelijken: no options for stand, must be Per inwoner
     if not vergelijken and selected_gemeente not in alleen_per_inwoner:
-        st.markdown(selected_gemeente)
         stand_options = get_data().Stand.unique()
         selected_stand = st.selectbox("Selecteer totaal of per inwoner",
                                       stand_options,
