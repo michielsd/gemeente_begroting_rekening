@@ -250,9 +250,9 @@ def calculate_difference(df):
     merged_df = merged_df[((merged_df['Verschil'] != merged_df['Waarde_bg']) &
                            (merged_df['Waarde_bg'] != 0)) | 
                           ((merged_df['Verschil'] != -merged_df['Waarde_jr']) &
-                           (merged_df['Waarde_jr'] != 0))] |
-                          ((merged_df['Waarde_jr']) == 0 &
-                           (merged_df['Waarde_bg'] == 0))
+                           (merged_df['Waarde_jr'] != 0)) |
+                          ((merged_df['Waarde_jr']) == 0) &
+                           (merged_df['Waarde_bg'] == 0))]
                             
 
     # Pivot table and change column headers
