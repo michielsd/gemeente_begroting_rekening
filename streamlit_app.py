@@ -251,7 +251,7 @@ def calculate_difference(df):
                            (merged_df['Waarde_bg'] != 0)) | 
                           ((merged_df['Verschil'] != -merged_df['Waarde_jr']) &
                            (merged_df['Waarde_jr'] != 0)) |
-                          ((merged_df['Waarde_jr']) == 0) &
+                          ((merged_df['Waarde_jr'] == 0) &
                            (merged_df['Waarde_bg'] == 0))]
                             
 
