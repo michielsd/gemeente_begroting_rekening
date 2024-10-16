@@ -1,9 +1,11 @@
 import csv
+import json
 
 import altair as alt
 import pandas as pd
 import streamlit as st
 import matplotlib
+import vl_convert as vlc
 
 # Globals
 JAAR_MINIMUM = 2017
@@ -70,8 +72,9 @@ def filter_data(data,
                                    | (data['Gemeenten'] == vergelijking)))]
 
     # Replace Overig bestuur en ondersteuning, too long
-    filtered_data['Taakveld'] = filtered_data['Taakveld'].replace(
-        'Overig bestuur en ondersteuning', 'Overig bestuur en onderst.')
+    filtered_data.loc[:, 'Taakveld'] = filtered_data['Taakveld'].replace(
+        'Overig bestuur en ondersteuning', 'Overig bestuur en onderst.'
+    )
 
     return filtered_data
 
@@ -89,12 +92,20 @@ def calculate_saldo(data):
 
 # Saldo graph
 def show_saldo(saldo, legend=True):
+    
+
     if legend:
         chart = alt.Chart(saldo).mark_line().encode(
             x=alt.X('Jaar:O'),
             y=alt.Y('Waarde:Q', title='€ 1.000'),
             color='Document:N',
-        ).configure_legend(title=None)
+        ).configure_legend(title=None).properties(
+            usermeta={
+                "embedOptions": {
+                    "formatLocale": vlc.get_format_locale("nl-NL"),
+                        }
+                }
+        )
     else:
         chart = alt.Chart(saldo).mark_line().encode(x=alt.X('Jaar:O'),
                                                     y=alt.Y('Waarde:Q',
@@ -269,7 +280,7 @@ def style_table(table, categorie):
                                                 gmap=gm,
                                                 axis=None
                                             ).format(
-                                                thousands=',',
+                                                thousands='.',
                                         )
 
     return styled_pv
