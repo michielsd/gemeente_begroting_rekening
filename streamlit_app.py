@@ -263,10 +263,6 @@ def calculate_difference(df):
 
 
 def style_table(table, categorie):
-    table = table.style.format(
-        thousands=',',
-    )
-    
     gm = calculate_gradient_map(table, categorie)
     styled_pv = table.style.background_gradient(cmap="RdBu",
                                                 gmap=gm,
