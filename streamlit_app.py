@@ -263,7 +263,7 @@ def calculate_difference(df):
 
 
 def style_table(table, categorie):
-    table = table..style.format(
+    table = table.style.format(
         thousands=',',
     )
     
