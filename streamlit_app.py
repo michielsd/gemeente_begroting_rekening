@@ -91,13 +91,17 @@ def calculate_saldo(data):
 
 
 # Saldo graph
-def show_saldo(saldo, legend=True):
-    
+def show_saldo(saldo, stand, legend=True):
+
+    if stand = "Per inwoner:
+        axis_title = € 1
+    else:
+        axis_title = € 1.000
 
     if legend:
         chart = alt.Chart(saldo).mark_line().encode(
             x=alt.X('Jaar:O'),
-            y=alt.Y('Waarde:Q', title='€ 1.000'),
+            y=alt.Y('Waarde:Q', title=axis_title),
             color='Document:N',
         ).configure_legend(title=None).properties(
             usermeta={
@@ -109,7 +113,7 @@ def show_saldo(saldo, legend=True):
     else:
         chart = alt.Chart(saldo).mark_line().encode(x=alt.X('Jaar:O'),
                                                     y=alt.Y('Waarde:Q',
-                                                            title='€ 1.000'),
+                                                            title=axis_title),
                                                     color=alt.Color(
                                                         'Document:N',
                                                         legend=None))
@@ -406,7 +410,7 @@ with saldo_container:
 
             chart_data = calculate_saldo(
                 filter_data(get_data(), selected_gemeente, selected_stand))
-            chart = show_saldo(chart_data)
+            chart = show_saldo(chart_data, selected_stand)
 
             st.markdown(f"Resultaat {selected_gemeente} vóór mutatie reserves{per_inwoner_string}")
             st.altair_chart(chart, theme="streamlit", use_container_width=True)
@@ -422,14 +426,14 @@ with saldo_container:
         with cs2:
             chart_data = calculate_saldo(
                 filter_data(get_data(), selected_gemeente, selected_stand))
-            chart = show_saldo(chart_data, legend=False)
+            chart = show_saldo(chart_data, selected_stand, legend=False)
 
             st.markdown(f"Resultaat {selected_gemeente} vóór mutatie reserves per inwoner")
             st.altair_chart(chart, theme="streamlit", use_container_width=True)
         with cs3:
             chart_data = calculate_saldo(
                 filter_data(get_data(), vergelijking, selected_stand))
-            chart = show_saldo(chart_data, legend=False)
+            chart = show_saldo(chart_data, selected_stand, legend=False)
 
             st.markdown(f"Resultaat {vergelijking} vóór mutatie reserves per inwoner")
             st.altair_chart(chart, theme="streamlit", use_container_width=True)
