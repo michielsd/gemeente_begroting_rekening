@@ -93,7 +93,7 @@ def calculate_saldo(data):
 # Saldo graph
 def show_saldo(saldo, stand, legend=True):
 
-    if stand == "Per inwoner:
+    if stand == "Per inwoner":
         axis_title = € 1
     else:
         axis_title = € 1.000
