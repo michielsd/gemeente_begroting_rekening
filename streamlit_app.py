@@ -139,13 +139,18 @@ def calculate_begroting_rekening(data, baten_lasten, jaar):
     return br_data
 
 
-def show_begroting_rekening(br_data):
+def show_begroting_rekening(br_data, stand):
+    if stand == "Per inwoner":
+        axis_title = "€ 1"
+    else:
+        axis_title = "€ 1.000"
+    
     br_chart = alt.Chart(br_data).mark_bar().encode(
         y=alt.Y('Document:N',
                 title='',
                 axis=alt.Axis(labels=False, ticks=False)
                 ),  # Group by Document (Begroting and Jaarrekening) vertically
-        x=alt.X('Waarde:Q', title='€ 1.000'),
+        x=alt.X('Waarde:Q', title=axis_title),
         color='Document:N',
         row=alt.Row(
             'Taakveld:N',
@@ -475,7 +480,7 @@ if not vergelijken:
             )
 
             # Define and create chart
-            chart = show_begroting_rekening(br_data)
+            chart = show_begroting_rekening(br_data, selected_stand)
 
             st.altair_chart(chart, theme="streamlit", use_container_width=True)
 
