@@ -399,7 +399,8 @@ with saldo_container:
 
     if not vergelijken:
         cs1, cs2, cs3 = st.columns([2, 4, 2])
-
+        per_inwoner_string = " per inwoner" if selected_stand == "Per inwoner" else ""
+        
         with cs2:
             st.header("Begroot en gerealiseerd exploitatiesaldo per jaar")
 
@@ -407,7 +408,7 @@ with saldo_container:
                 filter_data(get_data(), selected_gemeente, selected_stand))
             chart = show_saldo(chart_data)
 
-            st.markdown(f"Resultaat {selected_gemeente} vóór mutatie reserves")
+            st.markdown(f"Resultaat {selected_gemeente} vóór mutatie reserves{per_inwoner_string}")
             st.altair_chart(chart, theme="streamlit", use_container_width=True)
 
     else:
@@ -423,14 +424,14 @@ with saldo_container:
                 filter_data(get_data(), selected_gemeente, selected_stand))
             chart = show_saldo(chart_data, legend=False)
 
-            st.markdown(f"Resultaat {selected_gemeente} vóór mutatie reserves")
+            st.markdown(f"Resultaat {selected_gemeente} vóór mutatie reserves per inwoner")
             st.altair_chart(chart, theme="streamlit", use_container_width=True)
         with cs3:
             chart_data = calculate_saldo(
                 filter_data(get_data(), vergelijking, selected_stand))
             chart = show_saldo(chart_data, legend=False)
 
-            st.markdown(f"Resultaat {vergelijking} vóór mutatie reserves")
+            st.markdown(f"Resultaat {vergelijking} vóór mutatie reserves per inwoner")
             st.altair_chart(chart, theme="streamlit", use_container_width=True)
 
         with csh2:
