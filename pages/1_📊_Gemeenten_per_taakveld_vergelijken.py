@@ -15,7 +15,7 @@ taakvelden_dict = {
     "Verkeer en vervoer": ("2"),
     "Economie": ("3"),
     "Onderwijs": ("4"),
-    "SCR": ("5"),
+    "Sport, cultuur": ("5"),
     "Sociaal domein": ("6"),
     "Volksgezondheid": ("7"),
     "Wonen en bouwen": ("8"),
