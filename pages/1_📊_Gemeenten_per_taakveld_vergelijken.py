@@ -5,6 +5,8 @@ import pandas as pd
 import streamlit as st
 import matplotlib
 import vl_convert as vlc
+from io import BytesIO
+from pyxlsb import open_workbook as open_xlsb
 
 # Move dictionary definition here
 taakvelden_dict = {
@@ -114,14 +116,16 @@ def prep_hoofdtaakvelden(data):
     
     return chart_df
 
-def prep_subtaakvelden(data, htv):
+def prep_subtaakvelden(data, htv=None):
     chart_data = []
-    
-    tv_tuple = subtaakvelden[htv]
-    
-    taakvelden = data[
-        (data['Taakveld'].str.startswith(tv_tuple))
-    ].Taakveld.unique()
+
+    if htv:
+        tv_tuple = subtaakvelden[htv]
+        taakvelden = data[
+            (data['Taakveld'].str.startswith(tv_tuple))
+        ].Taakveld.unique()
+    else:
+        taakvelden = data.Taakveld.unique()
     
     gemeenten = data.Gemeenten.unique()
     
@@ -152,6 +156,27 @@ def prep_subtaakvelden(data, htv):
     
     return chart_df
 
+def to_excel(df, cat):
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        df.to_excel(writer, sheet_name=cat)
+        workbook = writer.book
+        worksheet = writer.sheets[cat]
+        
+        # Set column widths
+        worksheet.set_column('A:A', 20)  # Index column
+        worksheet.set_column('B:Z', 20)  # Data columns
+        
+        # Create European number format
+        num_format = workbook.add_format({'num_format': '#,##0'})
+        
+        # Apply format to all data cells
+        for col in range(1, len(df.columns) + 2):  # +2 because of index column
+            worksheet.set_column(col, col, None, num_format)
+            
+    processed_data = output.getvalue()
+    return processed_data
+
 # Wide screen
 st.set_page_config(layout="wide")
 
@@ -160,7 +185,7 @@ with st.sidebar:
     st.header("Selecteer hier de analyse")
 
     gemeente_options = list(get_data().Gemeenten.unique())
-    groep_options = [x for x in gemeente_options if "inwoners" in x or "stedelijk" in x] + \
+    groep_options = ["Nederland"] + [x for x in gemeente_options if "inwoners" in x or "stedelijk" in x] + \
         ["Drenthe", "Groningen", "Fryslân", "Overijssel", "Gelderland", "Flevoland", 
          "Utrecht", "Noord-Holland", "Zuid-Holland", "Noord-Brabant", "Zeeland",
          "Limburg"]
@@ -175,7 +200,7 @@ with st.sidebar:
                                      placeholder="Selecteer een optie",
                                      key=1)
     
-    vergelijk_groep = st.selectbox("Selecteer een provincie, grootte- of stedelijkheidsklasse om mee te vergelijken",
+    vergelijk_groep = st.selectbox("Selecteer een provincie, grootte- of stedelijkheidsklasse of alle gemeenten om mee te vergelijken",
                                      groep_options,
                                      index=None,
                                      placeholder="Selecteer een optie",
@@ -196,6 +221,7 @@ header_container = st.container()
 select_data = st.container()
 hoofd_tv = st.container()
 sub_tv = st.container()
+table_tv = st.container()
 
 with referral_container:
     ch1, ch2, ch3 = st.columns([1,3,1])
@@ -211,11 +237,12 @@ with header_container:
     with ch2:
         st.title("📊 Vergelijk taakvelden tussen gemeenten")
         st.markdown(
-            "Met deze tool kunnen gemeenten worden vergeleken op hun baten, lasten en saldi op hoofd- en individuele taakvelden. Met het selectiemenu links kan worden vergeleken met andere gemeenten, en het totaal van gemeenten in een provincie, grootte- of stedelijkheidsklasse."
+            "Met deze tool kunnen gemeenten worden vergeleken op hun baten, lasten en saldi op hoofd- en individuele taakvelden. Met het selectiemenu links kan worden vergeleken met andere gemeenten, alle gemeenten samen of het totaal van gemeenten in een provincie, grootte- of stedelijkheidsklasse. Met de knop onderaan kunnen de gegevens worden gedownload."
         )
         st.markdown(
             "Een saldo is gedefinieerd als netto lasten (lasten min baten). Onderstaande berekeningen zijn gemaakt op basis van onbewerkte Iv3-data, aangeleverd door gemeenten bij het CBS. Deze website is gemaakt door BZK."
         )
+        
         st.markdown(
             "Dit is een voorlopige versie, fouten voorbehouden. Vragen of opmerkingen? Stuur een mail naar <postbusiv3@minbzk.nl>."
         )
@@ -258,8 +285,8 @@ with hoofd_tv:
     ch1, ch2, ch3 = st.columns([3, 6, 3])
     
     with ch2:
-        som_header = "per inwoner" if per_inwoner else ""
-        hoofd_header = f'{selected_categorie} op hoofdtaakvelden in {selected_jaar} {som_header} ({selected_document.lower()})'
+        som_header = " per inwoner" if per_inwoner else ""
+        hoofd_header = f'{selected_categorie} op hoofdtaakvelden in {selected_jaar}{som_header} ({selected_document.lower()})'
         
         st.subheader(hoofd_header)
     
@@ -296,8 +323,8 @@ with sub_tv:
     cj1, cj2, cj3 = st.columns([3, 6, 3])
     
     with cj2:
-        som_header = "per inwoner" if per_inwoner else ""
-        sub_header = f'{selected_categorie} {htv} in {selected_jaar} {som_header} ({selected_document.lower()})'
+        som_header = " per inwoner" if per_inwoner else ""
+        sub_header = f'{selected_categorie} {htv.lower()} in {selected_jaar} {som_header} ({selected_document.lower()})'
         
         st.subheader(sub_header)
     
@@ -320,4 +347,80 @@ with sub_tv:
         )
         
         st.altair_chart(chart, use_container_width=True)
+
+with table_tv:
+    
+    ch1, ch2, ch3 = st.columns([2, 4, 2])
+    
+    with ch2:
+        st.header("Gegevens downloaden")
         
+        st.markdown(
+            "Met de knop hieronder kunnen de gegevens in bovenstaande grafieken worden gedownload.")
+        st.markdown(
+            "De opties in onderstaande menu zijn gebaseerd op de selectie in het menu hierboven. Selecteer een ander jaar, baten, lasten of saldi, begroting of jaarrekening of ander hoofdtaakveld om de tabellen van die gegevens te downloaden. Er is ook de optie om de baten, lasten of saldi van alle taakvelden in een jaar te downloaden."
+        )
+    
+    c1, c2, c3 = st.columns([2, 3, 2])
+    
+    with c2:
+        
+        ht_option = f"{selected_categorie} hoofdtaakvelden {selected_document.lower()} {selected_jaar}"
+        st_option = f"{selected_categorie} {htv.lower()} {selected_document.lower()} {selected_jaar}"
+        at_option = f"{selected_categorie} alle taakvelden {selected_document.lower()} {selected_jaar}"
+        
+        table_options = [ht_option, st_option, at_option]
+    
+        ttv = st.selectbox("Selecteer een tabel om te downloaden", 
+                           table_options, index=None, placeholder="Kies een optie"
+        )
+    
+        st.markdown("")
+        httable = sttable = None
+        
+        if ttv == ht_option:
+            # Pivot the table to have hoofdtaakveld as index and gemeenten as columns
+            httable = hoofdtaakvelden.pivot(index='Hoofdtaakveld', columns='Gemeente', values='Waarde')
+            
+            output_table = httable.style.format(
+                                                thousands='.',
+                                                precision=0
+                                        )
+                        
+            sheet_title = f'{selected_categorie}{som_header}'
+            df_xlsx = to_excel(output_table, sheet_title)
+            st.download_button(label=f'📥 Download {ht_option}',
+                                data=df_xlsx ,
+                                file_name= f'{ht_option}.xlsx')
+            
+        if ttv == st_option:
+            # Pivot the table to have hoofdtaakveld as index and gemeenten as columns
+            sttable = subtaakvelden.pivot(index='Taakveld', columns='Gemeente', values='Waarde')
+
+            output_table = sttable.style.format(
+                                                thousands='.',
+                                                precision=0
+                                        )
+                        
+            sheet_title = f'{selected_categorie}{som_header}'
+            df_xlsx = to_excel(output_table, sheet_title)
+            st.download_button(label=f'📥 Download {st_option}',
+                                data=df_xlsx ,
+                                file_name= f'{st_option.replace("-", "_")}.xlsx')
+            
+        if ttv == at_option:
+            alle_taakvelden = prep_subtaakvelden(gemeente_data, None)
+            attable = alle_taakvelden.pivot(index='Taakveld', columns='Gemeente', values='Waarde')
+            
+            output_table = attable.style.format(
+                                                thousands='.',
+                                                precision=0
+                                        )
+                        
+            sheet_title = f'{selected_categorie}{som_header}'
+            df_xlsx = to_excel(output_table, sheet_title)
+            st.download_button(label=f'📥 Download {at_option}',
+                                data=df_xlsx ,
+                                file_name= f'{at_option.replace("-", "_")}.xlsx')
+            
+            
