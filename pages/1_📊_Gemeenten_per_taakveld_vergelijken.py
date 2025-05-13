@@ -194,22 +194,36 @@ with st.sidebar:
                                      gemeente_options,
                                      key=0)
     
-    vergelijk_gemeente = st.selectbox("Selecteer een gemeente om mee te vergelijken",
+    vergelijk_gemeente1 = st.selectbox("Selecteer een gemeente om mee te vergelijken",
                                      gemeente_options,
                                      index=None,
                                      placeholder="Selecteer een optie",
                                      key=1)
+    vergelijk_gemeente2 = st.selectbox("Selecteer een gemeente om mee te vergelijken",
+                                     gemeente_options,
+                                     index=None,
+                                     placeholder="Selecteer een optie",
+                                     key=2)
+    vergelijk_gemeente3 = st.selectbox("Selecteer een gemeente om mee te vergelijken",
+                                     gemeente_options,
+                                     index=None,
+                                     placeholder="Selecteer een optie",
+                                     key=3)
     
     vergelijk_groep = st.selectbox("Selecteer een provincie, grootte- of stedelijkheidsklasse of alle gemeenten om mee te vergelijken",
                                      groep_options,
                                      index=None,
                                      placeholder="Selecteer een optie",
-                                     key=2)
+                                     key=4)
 
     selected_gemeenten = [selected_gemeente]
     
-    if vergelijk_gemeente is not None:
-        selected_gemeenten.append(vergelijk_gemeente)
+    if vergelijk_gemeente1 is not None:
+        selected_gemeenten.append(vergelijk_gemeente1)
+    if vergelijk_gemeente2 is not None:
+        selected_gemeenten.append(vergelijk_gemeente2)
+    if vergelijk_gemeente3 is not None:
+        selected_gemeenten.append(vergelijk_gemeente3)
     if vergelijk_groep is not None:
         selected_gemeenten.append(vergelijk_groep)
     
