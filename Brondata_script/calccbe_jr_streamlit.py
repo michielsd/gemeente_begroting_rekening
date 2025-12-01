@@ -117,7 +117,7 @@ docdict = {
 }
 
 DF = []
-for jaar in range(2020,2023): #terug naar 2017
+for jaar in range(2017,2025): #terug naar 2017
   
   bejr = []
   for naam, doc in docdict.items():
@@ -163,7 +163,7 @@ for jaar in range(2020,2023): #terug naar 2017
 
 DF = pd.concat(DF)
 
-#DF['Verschil'] = DF['Gerealiseerd'] - DF['Begroot']
+DF['Verschil'] = DF['Gerealiseerd'] - DF['Begroot']
 
 #import gemeenteklassen
 klassenlocatie = datamap = "C:/Dashboard/werk/gemdata/gemeenteklassen.csv"
@@ -171,24 +171,22 @@ kldf = pd.read_csv(klassenlocatie)
 
 klgem = kldf.Gemeenten.unique()
 dfgem = DF.Gemeenten.unique()
-#Brielle Westvoorne gaan fout
 
 DFO = pd.merge(DF, kldf, on="Gemeenten")
 
 DFO['Begroot_pc'] = 1000 * DFO['Begroot'] / DFO['Inwoners']
 DFO['Gerealiseerd_pc'] = 1000 * DFO['Gerealiseerd'] / DFO['Inwoners']
-#DFO['Verschil_pc'] = 1000 * DFO['Verschil'] / DFO['Inwoners']
+DFO['Verschil_pc'] = 1000 * DFO['Verschil'] / DFO['Inwoners']
 
 DFO = DFO.drop(columns=["Inwoners"])
 
-"""
 for provincie in DFO.Provincie.unique():
   for jaar in DFO.Jaar.unique():
     filter_DFO = DFO.loc[(DFO['Provincie'] == provincie) & (DFO['Jaar'] == jaar)]
     gemiddeld_begroot = filter_DFO['Begroot_pc'].mean()
     gemiddeld_gerealiseerd = filter_DFO['Gerealiseerd_pc'].mean()
     gemiddeld_verschil = filter_DFO['Verschil_pc'].mean()
-    DFO = DFO.append({'Gemeenten': provincie,'Jaar': jaar, 'Begroot_pc': gemiddeld_begroot, 'Gerealiseerd_pc': gemiddeld_gerealiseerd, 'Verschil_pc': gemiddeld_verschil}, ignore_index=True)
+    DFO = pd.concat([DFO, pd.DataFrame([{'Gemeenten': provincie, 'Jaar': jaar, 'Begroot_pc': gemiddeld_begroot, 'Gerealiseerd_pc': gemiddeld_gerealiseerd, 'Verschil_pc': gemiddeld_verschil}])], ignore_index=True)
 
 for grootteklasse in DFO.Grootteklasse.unique():
   for jaar in DFO.Jaar.unique():
@@ -196,9 +194,9 @@ for grootteklasse in DFO.Grootteklasse.unique():
     gemiddeld_begroot = filter_DFO['Begroot_pc'].mean()
     gemiddeld_gerealiseerd = filter_DFO['Gerealiseerd_pc'].mean()
     gemiddeld_verschil = filter_DFO['Verschil_pc'].mean()
-    DFO = DFO.append({'Gemeenten': grootteklasse,'Jaar': jaar, 'Begroot_pc': gemiddeld_begroot, 'Gerealiseerd_pc': gemiddeld_gerealiseerd, 'Verschil_pc': gemiddeld_verschil}, ignore_index=True)
+    DFO = pd.concat([DFO, pd.DataFrame([{'Gemeenten': grootteklasse,'Jaar': jaar, 'Begroot_pc': gemiddeld_begroot, 'Gerealiseerd_pc': gemiddeld_gerealiseerd, 'Verschil_pc': gemiddeld_verschil}])], ignore_index=True)
 
-"""
 
 outputname = "begroting_rekening.csv"
+DFO.to_pickle("begroting_rekening.pickle")
 DFO.to_csv(outputname, sep=",", decimal=".", float_format='%.4f')

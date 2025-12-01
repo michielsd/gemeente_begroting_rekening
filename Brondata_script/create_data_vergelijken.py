@@ -117,57 +117,63 @@ docdict = {
 pd.set_option('display.max_columns', None)
 
 DF = []
-for jaar in range(2017,2026):
+for jaar in range(2017,2027):
   
   bejr = []
   for naam, doc in docdict.items():
     
-    if jaar > 2023 and naam == "Jaarrekening": # Regionale indeling 2025 is 2024
-      pass
-    else:
+    if jaar > 2025 or (jaar == 2025 and naam == "Jaarrekening"): # Regionale indeling 2025 is 2024
+      continue
+      
+    if jaar == 2026:
+      k = 'k_1ePlaatsing_1'
     
-      dataframes = []
-      document = str(jaar) + doc
-      df = pd.read_csv(datamap % document)
-      pv = pivotIv3(df)
-      taakvelden = pv.TaakveldBalanspost.unique()
-      taakvelden = [i for i in taakvelden if not i.startswith(("A", "P"))]
-    
-      for tv in taakvelden:
-        tvalues = pv.loc[pv[t].str.startswith(tv)].groupby(g)['Baten'].sum().rename('Waarde')
-        tvalueframe = tvalues.to_frame()
-        tvalueframe.insert(0, 'Categorie', 'Baten')
-        tvalueframe.insert(0, 'Taakveld', tv)
-        tvalueframe.insert(0, 'Document', naam)
-        tvalueframe.insert(0, 'Jaar', jaar)
-        dataframes.append(tvalueframe)
+    dataframes = []
+    document = str(jaar) + doc
+    df = pd.read_csv(datamap % document)
+    pv = pivotIv3(df)
+    taakvelden = pv.TaakveldBalanspost.unique()
+    taakvelden = [i for i in taakvelden if not i.startswith(("A", "P"))]
+  
+    for tv in taakvelden:
+      tvalues = pv.loc[pv[t].str.startswith(tv)].groupby(g)['Baten'].sum().rename('Waarde')
+      tvalueframe = tvalues.to_frame()
+      tvalueframe.insert(0, 'Categorie', 'Baten')
+      tvalueframe.insert(0, 'Taakveld', tv)
+      tvalueframe.insert(0, 'Document', naam)
+      tvalueframe.insert(0, 'Jaar', jaar)
+      dataframes.append(tvalueframe)
 
-      for tv in taakvelden:
-        tvalues = pv.loc[pv[t].str.startswith(tv)].groupby(g)['Lasten'].sum().rename('Waarde')
-        tvalueframe = tvalues.to_frame()
-        tvalueframe.insert(0, 'Categorie', 'Lasten')
-        tvalueframe.insert(0, 'Taakveld', tv)
-        tvalueframe.insert(0, 'Document', naam)
-        tvalueframe.insert(0, 'Jaar', jaar)
-        dataframes.append(tvalueframe)
+    for tv in taakvelden:
+      tvalues = pv.loc[pv[t].str.startswith(tv)].groupby(g)['Lasten'].sum().rename('Waarde')
+      tvalueframe = tvalues.to_frame()
+      tvalueframe.insert(0, 'Categorie', 'Lasten')
+      tvalueframe.insert(0, 'Taakveld', tv)
+      tvalueframe.insert(0, 'Document', naam)
+      tvalueframe.insert(0, 'Jaar', jaar)
+      dataframes.append(tvalueframe)
 
-      for tv in taakvelden:
-        tvalues = pv.loc[pv[t].str.startswith(tv)].groupby(g)['Saldo'].sum().rename('Waarde')
-        tvalueframe = tvalues.to_frame()
-        tvalueframe.insert(0, 'Categorie', 'Saldo')
-        tvalueframe.insert(0, 'Taakveld', tv)
-        tvalueframe.insert(0, 'Document', naam)
-        tvalueframe.insert(0, 'Jaar', jaar)
-        dataframes.append(tvalueframe)
+    for tv in taakvelden:
+      tvalues = pv.loc[pv[t].str.startswith(tv)].groupby(g)['Saldo'].sum().rename('Waarde')
+      tvalueframe = tvalues.to_frame()
+      tvalueframe.insert(0, 'Categorie', 'Saldo')
+      tvalueframe.insert(0, 'Taakveld', tv)
+      tvalueframe.insert(0, 'Document', naam)
+      tvalueframe.insert(0, 'Jaar', jaar)
+      dataframes.append(tvalueframe)
+  
+    combined_df = pd.concat(dataframes)
+    bejr.append(combined_df)
     
-      combined_df = pd.concat(dataframes)
-    
-      bejr.append(combined_df)
-
-  outputdf = pd.concat(bejr)
+  if len(bejr) == 1:
+    outputdf = bejr[0]
+  elif len(bejr) > 1:
+    outputdf = pd.concat(bejr)
   
   #import gemeenteklassen
   klassenlocatie = f"C:/Dashboard/werk/gemdata/per_jaar/{jaar}.csv"
+  if jaar == 2026:
+    klassenlocatie = f"C:/Dashboard/werk/gemdata/per_jaar/2025.csv"
   kldf = pd.read_csv(klassenlocatie, sep=";", decimal=",")
   
   merged_df = pd.merge(outputdf, kldf, on="Gemeenten")
