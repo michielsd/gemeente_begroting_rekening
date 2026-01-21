@@ -7,11 +7,6 @@ import streamlit as st
 import matplotlib
 import vl_convert as vlc
 
-# Globals
-JAAR_MINIMUM = 2017
-JAAR_MAXIMUM = 2023
-
-
 # Data import
 @st.cache_resource
 def get_data():
@@ -30,6 +25,15 @@ def get_data():
     data = pd.read_pickle(filepath)
 
     return data
+
+
+# Get year range from data
+@st.cache_resource
+def get_year_range():
+    """Extract minimum and maximum years from the data."""
+    data = get_data()
+    jaren = data['Jaar'].astype(int).unique()
+    return int(jaren.min()), int(jaren.max())
 
 
 # Provincie and Grootteklasse data
@@ -51,9 +55,17 @@ def get_classes():
 def filter_data(data,
                 gemeente,
                 stand,
-                jaarmin=JAAR_MINIMUM,
-                jaarmax=JAAR_MAXIMUM,
+                jaarmin=None,
+                jaarmax=None,
                 vergelijking=None):
+    
+    # Get year range from data if not provided
+    if jaarmin is None or jaarmax is None:
+        jaar_min, jaar_max = get_year_range()
+        if jaarmin is None:
+            jaarmin = jaar_min
+        if jaarmax is None:
+            jaarmax = jaar_max
 
     # Tuple of jaren (saved as category)
     jaar_range = tuple([str(i) for i in range(jaarmin, jaarmax + 1)])
@@ -522,12 +534,13 @@ with taakveld_table_container:
                                              table_option_dict.keys())
 
         # Select range of years
+        jaar_min_range, jaar_max_range = get_year_range()
         jaar_min, jaar_max = st.slider(
             label="Selecteer het jaarbereik",
-            min_value=JAAR_MINIMUM,
-            max_value=JAAR_MAXIMUM,
-            value=(JAAR_MAXIMUM - 2 if vergelijken else JAAR_MAXIMUM - 4,
-                   JAAR_MAXIMUM),
+            min_value=jaar_min_range,
+            max_value=jaar_max_range,
+            value=(jaar_max_range - 2 if vergelijken else jaar_max_range - 4,
+                   jaar_max_range),
             step=1)
 
     if not vergelijken:
