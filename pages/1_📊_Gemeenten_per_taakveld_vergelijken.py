@@ -96,6 +96,12 @@ def prep_hoofdtaakvelden(data):
                 (data['Taakveld'].str.startswith(value))
             ]
             
+            # Skip if no data found for this gemeente and taakveld combination
+            if len(filtered_data) == 0:
+                record = [gemeente, key, 0]
+                chart_data.append(record)
+                continue
+            
             sum = filtered_data['Waarde'].sum()
             
             categorie = filtered_data['Categorie'].iloc[0]
@@ -105,7 +111,10 @@ def prep_hoofdtaakvelden(data):
             
             if per_inwoner:
                 inw = filtered_data['Inwonertal'].iloc[0]
-                rec = round(1000*sum/inw, 0)
+                if inw > 0:
+                    rec = round(1000*sum/inw, 0)
+                else:
+                    rec = 0
             else:
                 rec = sum
                 
@@ -136,6 +145,12 @@ def prep_subtaakvelden(data, htv=None):
                 (data['Taakveld'] == taakveld)
             ]
             
+            # Skip if no data found for this gemeente and taakveld combination
+            if len(filtered_data) == 0:
+                record = [gemeente, taakveld, 0]
+                chart_data.append(record)
+                continue
+            
             sum = filtered_data['Waarde'].sum()
             
             categorie = filtered_data['Categorie'].iloc[0]
@@ -145,7 +160,10 @@ def prep_subtaakvelden(data, htv=None):
             
             if per_inwoner:
                 inw = filtered_data['Inwonertal'].iloc[0]
-                rec = round(1000*sum/inw, 0)
+                if inw > 0:
+                    rec = round(1000*sum/inw, 0)
+                else:
+                    rec = 0
             else:
                 rec = sum
                 
