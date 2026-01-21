@@ -332,154 +332,163 @@ with select_data:
     
 with hoofd_tv:
     
-    if selected_jaar is not None and selected_document is not None and len(gemeente_data) > 0:
-        ch1, ch2, ch3 = st.columns([3, 6, 3])
-        
-        with ch2:
-            som_header = " per inwoner" if per_inwoner else ""
-            hoofd_header = f'{selected_categorie} op hoofdtaakvelden in {selected_jaar}{som_header} ({selected_document.lower()})'
+    if selected_jaar is not None and selected_document is not None:
+        if len(gemeente_data) > 0:
+            ch1, ch2, ch3 = st.columns([3, 6, 3])
             
-            st.subheader(hoofd_header)
-        
-        c1, c2, c3 = st.columns([2, 6, 2])
-        
-        with c2:
-            hoofdtaakvelden = prep_hoofdtaakvelden(gemeente_data)
+            with ch2:
+                som_header = " per inwoner" if per_inwoner else ""
+                hoofd_header = f'{selected_categorie} op hoofdtaakvelden in {selected_jaar}{som_header} ({selected_document.lower()})'
+                
+                st.subheader(hoofd_header)
             
-            chart = alt.Chart(hoofdtaakvelden).mark_bar().encode(
-                x=alt.X('Hoofdtaakveld:N', title='Hoofdtaakveld', sort=htv_order),
-                y=alt.Y('Waarde:Q', title=scale),
-                color=alt.Color('Gemeente:N', sort=selected_gemeenten),
-                xOffset=alt.XOffset('Gemeente:N', sort=selected_gemeenten)
-            ).properties(
-                    height=450,
-                    usermeta={
-                    "embedOptions": {
-                        "formatLocale": vlc.get_format_locale("nl-NL"),
-                            }
-                    }
-            )
+            c1, c2, c3 = st.columns([2, 6, 2])
             
-            st.altair_chart(chart, use_container_width=True)
+            with c2:
+                hoofdtaakvelden = prep_hoofdtaakvelden(gemeente_data)
+                
+                chart = alt.Chart(hoofdtaakvelden).mark_bar().encode(
+                    x=alt.X('Hoofdtaakveld:N', title='Hoofdtaakveld', sort=htv_order),
+                    y=alt.Y('Waarde:Q', title=scale),
+                    color=alt.Color('Gemeente:N', sort=selected_gemeenten),
+                    xOffset=alt.XOffset('Gemeente:N', sort=selected_gemeenten)
+                ).properties(
+                        height=450,
+                        usermeta={
+                        "embedOptions": {
+                            "formatLocale": vlc.get_format_locale("nl-NL"),
+                                }
+                        }
+                )
+                
+                st.altair_chart(chart, use_container_width=True)
+        else:
+            st.warning(f"Geen data beschikbaar voor {selected_jaar} en {selected_document.lower()}")
     else:
         st.info("Selecteer een gemeente, jaar en document om de grafiek te zien.")
         
 with sub_tv:
     
-    if selected_jaar is not None and selected_document is not None and len(gemeente_data) > 0:
-        ch1, ch2, ch3 = st.columns([2, 3, 2])
-        
-        with ch2:
+    if selected_jaar is not None and selected_document is not None:
+        if len(gemeente_data) > 0:
+            ch1, ch2, ch3 = st.columns([2, 3, 2])
             
-            htv = st.selectbox("Selecteer een hoofdtaakveld om op taakveldniveau te vergelijken", subtaakvelden)
+            with ch2:
+                
+                htv = st.selectbox("Selecteer een hoofdtaakveld om op taakveldniveau te vergelijken", subtaakvelden)
+                
+            cj1, cj2, cj3 = st.columns([3, 6, 3])
             
-        cj1, cj2, cj3 = st.columns([3, 6, 3])
-        
-        with cj2:
-            som_header = " per inwoner" if per_inwoner else ""
-            sub_header = f'{selected_categorie} {htv.lower()} in {selected_jaar} {som_header} ({selected_document.lower()})'
+            with cj2:
+                som_header = " per inwoner" if per_inwoner else ""
+                sub_header = f'{selected_categorie} {htv.lower()} in {selected_jaar} {som_header} ({selected_document.lower()})'
+                
+                st.subheader(sub_header)
             
-            st.subheader(sub_header)
-        
-        c1, c2, c3 = st.columns([2, 5, 2])
-        
-        with c2:
-            if htv is not None:
-                subtaakvelden_df = prep_subtaakvelden(gemeente_data, htv)
+            c1, c2, c3 = st.columns([2, 5, 2])
             
-            chart = alt.Chart(subtaakvelden_df).mark_bar().encode(
-                y=alt.Y('Taakveld:N', title='', axis=alt.Axis(labelLimit=200)),
-                x=alt.X('Waarde:Q', title=scale, stack=None),
-                color=alt.Color('Gemeente:N', sort=selected_gemeenten),
-                yOffset=alt.YOffset('Gemeente:N', sort=selected_gemeenten)
-            ).properties(
-                usermeta={
-                "embedOptions": {
-                    "formatLocale": vlc.get_format_locale("nl-NL"),
-                        }
-                }
-            )
-            
-            st.altair_chart(chart, use_container_width=True)
+            with c2:
+                if htv is not None:
+                    subtaakvelden_df = prep_subtaakvelden(gemeente_data, htv)
+                
+                chart = alt.Chart(subtaakvelden_df).mark_bar().encode(
+                    y=alt.Y('Taakveld:N', title='', axis=alt.Axis(labelLimit=200)),
+                    x=alt.X('Waarde:Q', title=scale, stack=None),
+                    color=alt.Color('Gemeente:N', sort=selected_gemeenten),
+                    yOffset=alt.YOffset('Gemeente:N', sort=selected_gemeenten)
+                ).properties(
+                    usermeta={
+                    "embedOptions": {
+                        "formatLocale": vlc.get_format_locale("nl-NL"),
+                            }
+                    }
+                )
+                
+                st.altair_chart(chart, use_container_width=True)
+        else:
+            st.warning(f"Geen data beschikbaar voor {selected_jaar} en {selected_document.lower()}")
 
 with table_tv:
     
-    if selected_jaar is not None and selected_document is not None and len(gemeente_data) > 0:
-        ch1, ch2, ch3 = st.columns([2, 4, 2])
-        
-        with ch2:
-            st.header("Gegevens downloaden")
+    if selected_jaar is not None and selected_document is not None:
+        if len(gemeente_data) > 0:
+            ch1, ch2, ch3 = st.columns([2, 4, 2])
             
-            st.markdown(
-                "Met de knop hieronder kunnen de gegevens in bovenstaande grafieken worden gedownload.")
-            st.markdown(
-                "De opties in onderstaande menu zijn gebaseerd op de selectie in het menu hierboven. Selecteer een ander jaar, baten, lasten of saldi, begroting of jaarrekening of ander hoofdtaakveld om de tabellen van die gegevens te downloaden. Er is ook de optie om de baten, lasten of saldi van alle taakvelden in een jaar te downloaden."
-            )
-        
-        c1, c2, c3 = st.columns([2, 3, 2])
-        
-        with c2:
-            
-            ht_option = f"{selected_categorie} hoofdtaakvelden {selected_document.lower()} {selected_jaar}"
-            
-            # Only include subtaakvelden options if htv is selected
-            table_options = [ht_option]
-            if htv is not None:
-                st_option = f"{selected_categorie} {htv.lower()} {selected_document.lower()} {selected_jaar}"
-                table_options.append(st_option)
-            at_option = f"{selected_categorie} alle taakvelden {selected_document.lower()} {selected_jaar}"
-            table_options.append(at_option)
-        
-            ttv = st.selectbox("Selecteer een tabel om te downloaden", 
-                               table_options, index=None, placeholder="Kies een optie"
-            )
-        
-            st.markdown("")
-            httable = sttable = None
-            
-            if ttv == ht_option and hoofdtaakvelden is not None:
-                # Pivot the table to have hoofdtaakveld as index and gemeenten as columns
-                httable = hoofdtaakvelden.pivot(index='Hoofdtaakveld', columns='Gemeente', values='Waarde')
+            with ch2:
+                st.header("Gegevens downloaden")
                 
-                output_table = httable.style.format(
-                                                    thousands='.',
-                                                    precision=0
-                                            )
-                            
-                sheet_title = f'{selected_categorie}{som_header}'
-                df_xlsx = to_excel(output_table, sheet_title)
-                st.download_button(label=f'📥 Download {ht_option}',
-                                    data=df_xlsx ,
-                                    file_name= f'{ht_option}.xlsx')
+                st.markdown(
+                    "Met de knop hieronder kunnen de gegevens in bovenstaande grafieken worden gedownload.")
+                st.markdown(
+                    "De opties in onderstaande menu zijn gebaseerd op de selectie in het menu hierboven. Selecteer een ander jaar, baten, lasten of saldi, begroting of jaarrekening of ander hoofdtaakveld om de tabellen van die gegevens te downloaden. Er is ook de optie om de baten, lasten of saldi van alle taakvelden in een jaar te downloaden."
+                )
+            
+            c1, c2, c3 = st.columns([2, 3, 2])
+            
+            with c2:
                 
-            if ttv == st_option and subtaakvelden_df is not None:
-                # Pivot the table to have hoofdtaakveld as index and gemeenten as columns
-                sttable = subtaakvelden_df.pivot(index='Taakveld', columns='Gemeente', values='Waarde')
+                ht_option = f"{selected_categorie} hoofdtaakvelden {selected_document.lower()} {selected_jaar}"
+                
+                # Only include subtaakvelden options if htv is selected
+                table_options = [ht_option]
+                if htv is not None:
+                    st_option = f"{selected_categorie} {htv.lower()} {selected_document.lower()} {selected_jaar}"
+                    table_options.append(st_option)
+                at_option = f"{selected_categorie} alle taakvelden {selected_document.lower()} {selected_jaar}"
+                table_options.append(at_option)
+            
+                ttv = st.selectbox("Selecteer een tabel om te downloaden", 
+                                   table_options, index=None, placeholder="Kies een optie"
+                )
+            
+                st.markdown("")
+                httable = sttable = None
+                
+                if ttv == ht_option and hoofdtaakvelden is not None:
+                    # Pivot the table to have hoofdtaakveld as index and gemeenten as columns
+                    httable = hoofdtaakvelden.pivot(index='Hoofdtaakveld', columns='Gemeente', values='Waarde')
+                    
+                    output_table = httable.style.format(
+                                                        thousands='.',
+                                                        precision=0
+                                                )
+                                
+                    sheet_title = f'{selected_categorie}{som_header}'
+                    df_xlsx = to_excel(output_table, sheet_title)
+                    st.download_button(label=f'📥 Download {ht_option}',
+                                        data=df_xlsx ,
+                                        file_name= f'{ht_option}.xlsx')
+                    
+                if ttv == st_option and subtaakvelden_df is not None:
+                    # Pivot the table to have hoofdtaakveld as index and gemeenten as columns
+                    sttable = subtaakvelden_df.pivot(index='Taakveld', columns='Gemeente', values='Waarde')
 
-                output_table = sttable.style.format(
-                                                    thousands='.',
-                                                    precision=0
-                                            )
-                            
-                sheet_title = f'{selected_categorie}{som_header}'
-                df_xlsx = to_excel(output_table, sheet_title)
-                st.download_button(label=f'📥 Download {st_option}',
-                                    data=df_xlsx ,
-                                    file_name= f'{st_option.replace("-", "_")}.xlsx')
-                
-            if ttv == at_option:
-                alle_taakvelden = prep_subtaakvelden(gemeente_data, None)
-                attable = alle_taakvelden.pivot(index='Taakveld', columns='Gemeente', values='Waarde')
-                
-                output_table = attable.style.format(
-                                                    thousands='.',
-                                                    precision=0
-                                            )
-                            
-                sheet_title = f'{selected_categorie}{som_header}'
-                df_xlsx = to_excel(output_table, sheet_title)
-                st.download_button(label=f'📥 Download {at_option}',
-                                    data=df_xlsx ,
-                                    file_name= f'{at_option.replace("-", "_")}.xlsx')
+                    output_table = sttable.style.format(
+                                                        thousands='.',
+                                                        precision=0
+                                                )
+                                
+                    sheet_title = f'{selected_categorie}{som_header}'
+                    df_xlsx = to_excel(output_table, sheet_title)
+                    st.download_button(label=f'📥 Download {st_option}',
+                                        data=df_xlsx ,
+                                        file_name= f'{st_option.replace("-", "_")}.xlsx')
+                    
+                if ttv == at_option:
+                    alle_taakvelden = prep_subtaakvelden(gemeente_data, None)
+                    attable = alle_taakvelden.pivot(index='Taakveld', columns='Gemeente', values='Waarde')
+                    
+                    output_table = attable.style.format(
+                                                        thousands='.',
+                                                        precision=0
+                                                )
+                                
+                    sheet_title = f'{selected_categorie}{som_header}'
+                    df_xlsx = to_excel(output_table, sheet_title)
+                    st.download_button(label=f'📥 Download {at_option}',
+                                        data=df_xlsx ,
+                                        file_name= f'{at_option.replace("-", "_")}.xlsx')
+        else:
+            st.warning(f"Geen data beschikbaar voor {selected_jaar} en {selected_document.lower()}")
             
             
