@@ -40,55 +40,192 @@ subtaakvelden = {
     "Wonen en bouwen": ("8"),
 }
 
+# Constants
+EURO_TO_THOUSAND_FACTOR = 1000  # Convert from €1000 to € per inhabitant
+
+def calculate_waarde(filtered_data, per_inwoner=False):
+    """Calculate the final value for a gemeente-taakveld combination.
+    
+    Args:
+        filtered_data: DataFrame slice for specific gemeente and taakveld
+        per_inwoner: If True, return value per inhabitant, else total
+        
+    Returns:
+        Calculated value (float)
+    """
+    if len(filtered_data) == 0:
+        return 0
+    
+    sum_value = filtered_data['Waarde'].sum()
+    categorie = filtered_data['Categorie'].iloc[0]
+    
+    # Saldo is defined as netto lasten (lasten - baten), so negate
+    if categorie == "Saldo":
+        sum_value = -1 * sum_value
+    
+    if per_inwoner:
+        inwonertal = filtered_data['Inwonertal'].iloc[0]
+        if inwonertal > 0:
+            return round(EURO_TO_THOUSAND_FACTOR * sum_value / inwonertal, 0)
+        else:
+            return 0
+    else:
+        return sum_value
+
 @st.cache_resource
 def get_data():
+    """Load budget/reckoning data with error handling.
+    
+    Returns:
+        DataFrame with gemeente data, or empty DataFrame on error
+    """
     filepath = "begroting_rekening_per_taakveld.pickle"
-
-    data = pd.read_pickle(filepath)
-
-    return data
+    
+    try:
+        data = pd.read_pickle(filepath)
+        
+        if data.empty:
+            st.error("⚠️ Data file is empty. Please check the data source.")
+            return pd.DataFrame()
+        
+        # Validate required columns exist
+        required_columns = ['Gemeenten', 'Jaar', 'Document', 'Categorie', 
+                          'Taakveld', 'Waarde', 'Inwonertal']
+        missing_columns = [col for col in required_columns if col not in data.columns]
+        
+        if missing_columns:
+            st.error(f"⚠️ Missing required columns in data: {missing_columns}")
+            return pd.DataFrame()
+        
+        return data
+        
+    except FileNotFoundError:
+        st.error(f"❌ Data file '{filepath}' not found. Please ensure the file exists.")
+        return pd.DataFrame()
+    except Exception as e:
+        st.error(f"❌ Error loading data: {str(e)}")
+        st.exception(e)  # Show full traceback in debug mode
+        return pd.DataFrame()
 
 def check_jaren(data, gemeenten):
+    """Check available years for given gemeenten.
     
-    filtered_data = data[(data['Gemeenten'].str.startswith(tuple(gemeenten)))]
-    
-    jaren = list(filtered_data.Jaar.unique())
-    
-    if len(jaren) == 0:
+    Args:
+        data: Source DataFrame
+        gemeenten: Single gemeente name (str) or tuple of gemeente names
+        
+    Returns:
+        List of available years, or False if no data
+    """
+    if data.empty:
         return False
+    
+    # Normalize to tuple
+    if isinstance(gemeenten, str):
+        gemeenten_pattern = (gemeenten,)
     else:
-        return jaren
+        gemeenten_pattern = gemeenten
+    
+    try:
+        filtered_data = data[data['Gemeenten'].str.startswith(gemeenten_pattern)]
+        jaren = list(filtered_data.Jaar.unique())
+        
+        return jaren if len(jaren) > 0 else False
+    except Exception as e:
+        st.warning(f"⚠️ Error checking years: {str(e)}")
+        return False
 
 def check_document(data, gemeenten, selected_jaar):
-    filtered_data = data[
-        (data['Gemeenten'].str.startswith(tuple(gemeenten)))
-        & (data['Jaar'] == selected_jaar)
-    ]
+    """Check available documents for given gemeenten and year.
     
-    documenten = tuple(filtered_data.Document.unique())
+    Args:
+        data: Source DataFrame
+        gemeenten: Single gemeente name (str) or tuple of gemeente names
+        selected_jaar: Selected year (int)
+        
+    Returns:
+        Tuple of available document types
+    """
+    if data.empty:
+        return tuple()
     
-    return documenten
+    # Normalize to tuple
+    if isinstance(gemeenten, str):
+        gemeenten_pattern = (gemeenten,)
+    else:
+        gemeenten_pattern = gemeenten
+    
+    try:
+        filtered_data = data[
+            (data['Gemeenten'].str.startswith(gemeenten_pattern)) &
+            (data['Jaar'] == selected_jaar)
+        ]
+        
+        return tuple(filtered_data.Document.unique())
+    except Exception as e:
+        st.warning(f"⚠️ Error checking documents: {str(e)}")
+        return tuple()
     
     
 
 @st.cache_data
 def filter_data(data, jaar, gemeenten, document, categorie):
-    filtered_data = data[(data['Gemeenten'].str.startswith(gemeenten))
-                            & (data['Jaar'] == jaar)
-                            & (data['Document'] == document)
-                            & (data['Categorie'] == categorie)
-                    ]
+    """Filter data by year, gemeenten, document, and category.
     
-    return filtered_data
-
-
-
-def prep_hoofdtaakvelden(data):
+    Args:
+        data: Source DataFrame
+        jaar: Year (int)
+        gemeenten: Single gemeente name (str) or tuple of gemeente names
+        document: Document type (str)
+        categorie: Category (str)
+        
+    Returns:
+        Filtered DataFrame
+    """
+    if data.empty:
+        return pd.DataFrame()
     
+    # Normalize gemeenten to tuple for consistent handling
+    if isinstance(gemeenten, str):
+        gemeenten_pattern = (gemeenten,)
+    elif isinstance(gemeenten, tuple):
+        gemeenten_pattern = gemeenten
+    else:
+        st.warning(f"⚠️ Unexpected type for gemeenten: {type(gemeenten)}")
+        return pd.DataFrame()
+    
+    try:
+        filtered_data = data[
+            (data['Gemeenten'].str.startswith(gemeenten_pattern)) &
+            (data['Jaar'] == jaar) &
+            (data['Document'] == document) &
+            (data['Categorie'] == categorie)
+        ]
+        
+        return filtered_data
+        
+    except KeyError as e:
+        st.warning(f"⚠️ Column not found in data: {e}")
+        return pd.DataFrame()
+    except Exception as e:
+        st.warning(f"⚠️ Error filtering data: {str(e)}")
+        return pd.DataFrame()
+
+
+
+def prep_hoofdtaakvelden(data, per_inwoner=False):
+    """Prepare data for hoofdtaakvelden chart.
+    
+    Args:
+        data: Filtered DataFrame with gemeente data
+        per_inwoner: If True, calculate values per inhabitant, else use totals
+        
+    Returns:
+        DataFrame with columns: Gemeente, Hoofdtaakveld, Waarde
+    """
     chart_data = []
-    
     gemeenten = data.Gemeenten.unique()
-     
+    
     for gemeente in gemeenten:
         for key, value in taakvelden_dict.items():
             filtered_data = data[
@@ -96,38 +233,24 @@ def prep_hoofdtaakvelden(data):
                 (data['Taakveld'].str.startswith(value))
             ]
             
-            # Skip if no data found for this gemeente and taakveld combination
-            if len(filtered_data) == 0:
-                record = [gemeente, key, 0]
-                chart_data.append(record)
-                continue
-            
-            sum = filtered_data['Waarde'].sum()
-            
-            categorie = filtered_data['Categorie'].iloc[0]
-            
-            if categorie == "Saldo":
-                sum = -1*sum
-            
-            if per_inwoner:
-                inw = filtered_data['Inwonertal'].iloc[0]
-                if inw > 0:
-                    rec = round(1000*sum/inw, 0)
-                else:
-                    rec = 0
-            else:
-                rec = sum
-                
-            record = [gemeente, key, rec]
-            chart_data.append(record)
+            waarde = calculate_waarde(filtered_data, per_inwoner)
+            chart_data.append([gemeente, key, waarde])
     
-    chart_df = pd.DataFrame(chart_data, columns=["Gemeente", "Hoofdtaakveld", "Waarde"])
-    
-    return chart_df
+    return pd.DataFrame(chart_data, columns=["Gemeente", "Hoofdtaakveld", "Waarde"])
 
-def prep_subtaakvelden(data, htv=None):
+def prep_subtaakvelden(data, htv=None, per_inwoner=False):
+    """Prepare data for subtaakvelden chart.
+    
+    Args:
+        data: Filtered DataFrame with gemeente data
+        htv: Optional hoofdtaakveld to filter by
+        per_inwoner: If True, calculate values per inhabitant, else use totals
+        
+    Returns:
+        DataFrame with columns: Gemeente, Taakveld, Waarde
+    """
     chart_data = []
-
+    
     if htv:
         tv_tuple = subtaakvelden[htv]
         taakvelden = data[
@@ -145,34 +268,10 @@ def prep_subtaakvelden(data, htv=None):
                 (data['Taakveld'] == taakveld)
             ]
             
-            # Skip if no data found for this gemeente and taakveld combination
-            if len(filtered_data) == 0:
-                record = [gemeente, taakveld, 0]
-                chart_data.append(record)
-                continue
-            
-            sum = filtered_data['Waarde'].sum()
-            
-            categorie = filtered_data['Categorie'].iloc[0]
-            
-            if categorie == "Saldo":
-                sum = -1*sum
-            
-            if per_inwoner:
-                inw = filtered_data['Inwonertal'].iloc[0]
-                if inw > 0:
-                    rec = round(1000*sum/inw, 0)
-                else:
-                    rec = 0
-            else:
-                rec = sum
-                
-            record = [gemeente, taakveld, rec]
-            chart_data.append(record)
+            waarde = calculate_waarde(filtered_data, per_inwoner)
+            chart_data.append([gemeente, taakveld, waarde])
     
-    chart_df = pd.DataFrame(chart_data, columns=["Gemeente", "Taakveld", "Waarde"])
-    
-    return chart_df
+    return pd.DataFrame(chart_data, columns=["Gemeente", "Taakveld", "Waarde"])
 
 def to_excel(df, cat):
     output = BytesIO()
@@ -198,11 +297,20 @@ def to_excel(df, cat):
 # Wide screen
 st.set_page_config(layout="wide")
 
+# Load data once at the beginning
+with st.spinner("📊 Data wordt geladen..."):
+    data = get_data()
+
+# Early exit if no data
+if data.empty:
+    st.error("❌ Geen data beschikbaar. De applicatie kan niet worden gestart.")
+    st.stop()
+
 # Sidebar
 with st.sidebar:
     st.header("Selecteer hier de analyse")
 
-    gemeente_options = list(get_data().Gemeenten.unique())
+    gemeente_options = list(data.Gemeenten.unique())
     groep_options = ["Nederland"] + [x for x in gemeente_options if "inwoners" in x or "stedelijk" in x] + \
         ["Drenthe", "Groningen", "Fryslân", "Overijssel", "Gelderland", "Flevoland", 
          "Utrecht", "Noord-Holland", "Zuid-Holland", "Noord-Brabant", "Zeeland",
@@ -288,7 +396,7 @@ with select_data:
     
     with ch2:
         
-        jaar_options = check_jaren(get_data(), selected_gemeenten[0])
+        jaar_options = check_jaren(data, selected_gemeenten[0])
         selected_jaar = None
         if jaar_options:
             selected_jaar = st.slider("Welk jaar vergelijken?", min(jaar_options), max(jaar_options), max(jaar_options))
@@ -300,7 +408,7 @@ with select_data:
         selected_document = None
         if selected_jaar is not None:
             with c1:
-                document_options = check_document(get_data(), selected_gemeenten, selected_jaar)
+                document_options = check_document(data, selected_gemeenten, selected_jaar)
                 if len(document_options) > 0:
                     selected_document = st.selectbox("Begroting of jaarrekening?", document_options)
                 else:
@@ -321,7 +429,7 @@ with select_data:
             scale = "€" if per_inwoner else "€ 1.000"
     
     if selected_jaar is not None and selected_document is not None:
-        gemeente_data = filter_data(get_data(), selected_jaar, selected_gemeenten, selected_document, selected_categorie)
+        gemeente_data = filter_data(data, selected_jaar, selected_gemeenten, selected_document, selected_categorie)
     else:
         gemeente_data = pd.DataFrame()
     
@@ -345,23 +453,24 @@ with hoofd_tv:
             c1, c2, c3 = st.columns([2, 6, 2])
             
             with c2:
-                hoofdtaakvelden = prep_hoofdtaakvelden(gemeente_data)
-                
-                chart = alt.Chart(hoofdtaakvelden).mark_bar().encode(
-                    x=alt.X('Hoofdtaakveld:N', title='Hoofdtaakveld', sort=htv_order),
-                    y=alt.Y('Waarde:Q', title=scale),
-                    color=alt.Color('Gemeente:N', sort=selected_gemeenten),
-                    xOffset=alt.XOffset('Gemeente:N', sort=selected_gemeenten)
-                ).properties(
+                with st.spinner("📊 Grafiek wordt gegenereerd..."):
+                    hoofdtaakvelden = prep_hoofdtaakvelden(gemeente_data, per_inwoner=per_inwoner)
+                    
+                    chart = alt.Chart(hoofdtaakvelden).mark_bar().encode(
+                        x=alt.X('Hoofdtaakveld:N', title='Hoofdtaakveld', sort=htv_order),
+                        y=alt.Y('Waarde:Q', title=scale),
+                        color=alt.Color('Gemeente:N', sort=selected_gemeenten),
+                        xOffset=alt.XOffset('Gemeente:N', sort=selected_gemeenten)
+                    ).properties(
                         height=450,
                         usermeta={
-                        "embedOptions": {
-                            "formatLocale": vlc.get_format_locale("nl-NL"),
-                                }
+                            "embedOptions": {
+                                "formatLocale": vlc.get_format_locale("nl-NL"),
+                            }
                         }
-                )
-                
-                st.altair_chart(chart, use_container_width=True)
+                    )
+                    
+                    st.altair_chart(chart, use_container_width=True)
         else:
             st.warning(f"Geen data beschikbaar voor {selected_jaar} en {selected_document.lower()}")
     else:
@@ -389,22 +498,23 @@ with sub_tv:
             
             with c2:
                 if htv is not None:
-                    subtaakvelden_df = prep_subtaakvelden(gemeente_data, htv)
-                
-                chart = alt.Chart(subtaakvelden_df).mark_bar().encode(
-                    y=alt.Y('Taakveld:N', title='', axis=alt.Axis(labelLimit=200)),
-                    x=alt.X('Waarde:Q', title=scale, stack=None),
-                    color=alt.Color('Gemeente:N', sort=selected_gemeenten),
-                    yOffset=alt.YOffset('Gemeente:N', sort=selected_gemeenten)
-                ).properties(
-                    usermeta={
-                    "embedOptions": {
-                        "formatLocale": vlc.get_format_locale("nl-NL"),
+                    with st.spinner("📊 Grafiek wordt gegenereerd..."):
+                        subtaakvelden_df = prep_subtaakvelden(gemeente_data, htv, per_inwoner=per_inwoner)
+                        
+                        chart = alt.Chart(subtaakvelden_df).mark_bar().encode(
+                            y=alt.Y('Taakveld:N', title='', axis=alt.Axis(labelLimit=200)),
+                            x=alt.X('Waarde:Q', title=scale, stack=None),
+                            color=alt.Color('Gemeente:N', sort=selected_gemeenten),
+                            yOffset=alt.YOffset('Gemeente:N', sort=selected_gemeenten)
+                        ).properties(
+                            usermeta={
+                                "embedOptions": {
+                                    "formatLocale": vlc.get_format_locale("nl-NL"),
+                                }
                             }
-                    }
-                )
-                
-                st.altair_chart(chart, use_container_width=True)
+                        )
+                        
+                        st.altair_chart(chart, use_container_width=True)
         else:
             st.warning(f"Geen data beschikbaar voor {selected_jaar} en {selected_document.lower()}")
 
@@ -475,7 +585,7 @@ with table_tv:
                                         file_name= f'{st_option.replace("-", "_")}.xlsx')
                     
                 if ttv == at_option:
-                    alle_taakvelden = prep_subtaakvelden(gemeente_data, None)
+                    alle_taakvelden = prep_subtaakvelden(gemeente_data, None, per_inwoner=per_inwoner)
                     attable = alle_taakvelden.pivot(index='Taakveld', columns='Gemeente', values='Waarde')
                     
                     output_table = attable.style.format(
