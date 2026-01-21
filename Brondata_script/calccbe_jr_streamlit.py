@@ -247,6 +247,11 @@ def add_aggregates(df: pd.DataFrame, *, population_col: str | None = None) -> pd
         return df
 
     base_cols = ["Jaar", "Stand", "Document", "Categorie", "Taakveld"]
+    total_base_cols = ["Jaar", "Document", "Categorie", "Taakveld"]
+
+    # Important: "Per inwoner" must be computed as (1000 * sum(Totaal) / sum(Inwoners)),
+    # not as sum(per-inwoner) across gemeenten.
+    df_total = df[df["Stand"] == "Totaal"].copy()
 
     def _sum_group(group_name: str, key_col: str) -> pd.DataFrame:
         if df["Stand"].nunique() == 1 and df["Stand"].iloc[0] == "Totaal":
@@ -255,7 +260,7 @@ def add_aggregates(df: pd.DataFrame, *, population_col: str | None = None) -> pd
             return grp
 
         if population_col and population_col in df.columns:
-            grp = df.groupby([key_col] + [c for c in base_cols if c != "Stand"], as_index=False).agg(
+            grp = df_total.groupby([key_col] + total_base_cols, as_index=False).agg(
                 Waarde=("Waarde", "sum"),
                 pop=(population_col, "sum"),
             )
@@ -278,8 +283,27 @@ def add_aggregates(df: pd.DataFrame, *, population_col: str | None = None) -> pd
         return grp
 
     # Nederland
-    nl = df.groupby(base_cols, as_index=False)["Waarde"].sum()
-    nl[COL_GEMEENTE] = "Nederland"
+    if population_col and population_col in df.columns:
+        nl_base = df_total.groupby(total_base_cols, as_index=False).agg(
+            Waarde=("Waarde", "sum"),
+            pop=(population_col, "sum"),
+        )
+        nl_t = nl_base.copy()
+        nl_t.insert(1, "Stand", "Totaal")
+        nl_t = nl_t.drop(columns=["pop"])
+
+        nl_p = nl_base.copy()
+        nl_p["Waarde"] = 1000 * nl_p["Waarde"] / nl_p["pop"]
+        nl_p.insert(1, "Stand", "Per inwoner")
+        nl_p = nl_p.drop(columns=["pop"])
+
+        nl = pd.concat([nl_t, nl_p], ignore_index=True)
+        nl.insert(0, COL_GEMEENTE, "Nederland")
+    else:
+        # No population available: can only compute totals safely.
+        nl = df_total.groupby(total_base_cols, as_index=False)["Waarde"].sum()
+        nl.insert(0, COL_GEMEENTE, "Nederland")
+        nl.insert(2, "Stand", "Totaal")
 
     prov = _sum_group("Provincie", "Provincie")
     gro = _sum_group("Grootteklasse", "Grootteklasse")
