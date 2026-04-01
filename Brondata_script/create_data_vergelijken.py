@@ -130,7 +130,7 @@ def herindeling(jaar, df):
 def get_waarde_column(jaar):
     """Get the appropriate value column name based on year."""
     if jaar == 2026:
-        return 'k_1ePlaatsing_1'
+        return 'k_2ePlaatsing_2'
     return COLUMN_NAMES['waarde_col']
 
 
@@ -157,7 +157,7 @@ def create_taakveld_dataframe(pv, taakveld, categorie, jaar, document_naam):
 def process_document(jaar, document_naam, doc_code):
     """Process a single document (Begroting or Jaarrekening) for a given year."""
     # Skip if year is beyond available data
-    if jaar > 2025 or (jaar == 2025 and document_naam == "Jaarrekening"):
+    if jaar > 2026 or (jaar >= 2025 and document_naam == "Jaarrekening"):
         return None
     
     # Get appropriate value column
@@ -281,7 +281,9 @@ def save_output(df, output_path="begroting_rekening_per_taakveld.pickle"):
     """Save the final dataframe to a pickle file."""
     df.to_pickle(output_path)
     # Alternative CSV output (commented out):
-    # df.to_csv(output_path.replace('.pickle', '.csv'), sep=",", decimal=".", float_format='%.4f')
+    # Only keep rows where Jaar > 2023
+    df = df[df['Jaar'] > 2023]
+    df.to_csv(output_path.replace('.pickle', '.csv'), sep=",", decimal=".", float_format='%.4f')
 
 
 def main():
