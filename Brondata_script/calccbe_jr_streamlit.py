@@ -25,7 +25,7 @@ import pandas as pd
 DEFAULT_IV3_DIR = Path(r"C:\Dashboard\werk\iv3data")
 DEFAULT_CLASSES_CSV = Path(r"C:\Dashboard\werk\gemdata\gemeenteklassen2.csv")
 DEFAULT_YEAR_START = 2017
-DEFAULT_YEAR_END = 2024
+DEFAULT_YEAR_END = 2025
 DEFAULT_OUT_PICKLE = Path("begroting_rekening.pickle")
 DEFAULT_OUT_CSV = Path("begroting_rekening.csv")
 

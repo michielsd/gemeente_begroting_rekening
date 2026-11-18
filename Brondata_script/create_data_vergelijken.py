@@ -157,7 +157,7 @@ def create_taakveld_dataframe(pv, taakveld, categorie, jaar, document_naam):
 def process_document(jaar, document_naam, doc_code):
     """Process a single document (Begroting or Jaarrekening) for a given year."""
     # Skip if year is beyond available data
-    if jaar > 2026 or (jaar >= 2025 and document_naam == "Jaarrekening"):
+    if jaar > 2026 or (jaar >= 2026 and document_naam == "Jaarrekening"):
         return None
     
     # Get appropriate value column
